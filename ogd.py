@@ -18,5 +18,5 @@ def ogd_step(x_t, f_t, step, project):
 	loss.backward()
 	gradient = x_t.grad.data
 	new_point = x_t.data - step * gradient
-	updated = project(new_point.numpy())
-	return torch.tensor(updated), float(loss.data.numpy())
+	update = project(new_point.numpy())
+	return torch.tensor(update), float(loss.data.numpy())

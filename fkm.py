@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-form torch.autograd import Variable
+from torch.autograd import Variable
 
 '''
 Sample a random unit vector in d dimensions by normalizing i.i.d gaussian vector
@@ -31,4 +31,4 @@ def fkm_step(x_t, f_t, d, delta, step, project):
 	g_t = (d * loss / delta) * u_t
 	new_point = x_t - step * g_t
 	update = project(new_point.numpy())
-	return torch.tensor(updated), loss
+	return torch.tensor(update), loss
