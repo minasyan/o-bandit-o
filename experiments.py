@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 '''
 Linear function that returns the dot product with a random input tensor.
 '''
-def f_linear(G, d):
+def f_linear(G, d, R):
 	in_tensor = torch.tensor(np.random.normal(1, 1, size=d), dtype=torch.float64)
 	in_tensor = projection(G)(in_tensor)
 	def f_t(x):
@@ -15,9 +15,20 @@ def f_linear(G, d):
 	return f_t
 
 '''
-Quadratic function that returns the matrix form quadratic with a random matrix.
+Quadratic function that returns the matrix quadratic form with a random matrix
+plus a dot product with a random unit vector.
 '''
-#def f_quadratic(G, d):
+def f_quadratic(G, d, R):
+	in_matrix = np.random.normal(1, 1, size=(d, d))
+	norm_bound = np.linalg.norm(in_matrix.T+in_matrix, ord=2)
+	if norm_bound > (G-1)/R:
+		in_matrix = in_matrix * (G-1)/(R*norm_bound)
+	in_matrix = torch.tensor(in_matrix, dtype=torch.float64)
+	in_tensor = torch.tensor(np.random.normal(1, 1, size=d), dtype=torch.float64)
+	in_tensor = projection(1)(in_tensor)
+	def f_t(x):
+		return torch.mm(x.view(1, -1), torch.mm(in_matrix, x.view(-1, 1)))[0][0] + torch.dot(in_tensor, x)
+	return f_t
 
 
 '''
@@ -31,13 +42,15 @@ def projection(r):
 	return project
 
 def plot_runs(opt_name, f_name, ogd_losses, fkm_losses, T):
+	plt.rcParams.update({'font.size': 12})
 	xs = [t for t in range(1, T+1)]
 	title = opt_name+" for "+f_name
 	plt.plot(xs, ogd_losses, 'r-', label='OGD')
 	plt.plot(xs, fkm_losses, 'b-', label='FKM')
-	plt.legend(loc='upper right')
+	plt.legend(loc='upper right', frameon=False)
 	plt.xlabel("Iterations")
 	plt.ylabel("Average loss incurred")
+	#plt.ylim(top=0.6)
 	plt.title(title)
 	plt.show()
 
@@ -50,9 +63,11 @@ G is the bound on the gradients. T is the number of iterations.
 f is the function template we are running optimization on.
 '''
 def run_offline(T, G, R, d, f, name):
+	#import pdb; pdb.set_trace()
+
 	ogd_x = torch.zeros(d, dtype=torch.float64)
 	fkm_x = torch.zeros(d, dtype=torch.float64)
-	f_opt = f(G, d)
+	f_opt = f(G, d, R)
 	D = 2 * R
 	C = G * R
 	ogd_stepsize = D / (G * T**(1/2))
@@ -102,7 +117,7 @@ def run_random(T, G, R, d, f, name):
 	fkm_all_losses = []
 	for t in range(T):
 		#print("Iteration {0}".format(t))
-		current_f = f(G, d)
+		current_f = f(G, d, R)
 		ogd_x, loss = ogd_step(ogd_x, current_f, ogd_stepsize, ogd_project)
 		ogd_loss += loss
 		#print("OGD action is {0}, the average loss so far is {1}".format(ogd_x.data, ogd_loss/(t+1)))
@@ -115,7 +130,7 @@ def run_random(T, G, R, d, f, name):
 
 if __name__ == '__main__':
 	d = 10
-	T = 1000
+	T = 5000
 	G = 5.0
 	R = 3.0
-	run_random(T, G, R, d, f_linear, "Linear function")
+	run_random(T, G, R, d, f_quadratic, "Quadratic function")
